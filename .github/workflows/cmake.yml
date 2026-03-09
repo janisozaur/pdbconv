@@ -1,23 +1,29 @@
 name: CMake Build
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+on: [push, pull_request]
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
+    name: Build on ${{ matrix.os }} (${{ matrix.compiler }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest]
+        include:
+          - os: ubuntu-latest
+            compiler: gcc
+          - os: macos-latest
+            compiler: clang
+          - os: windows-latest
+            compiler: msvc
+          - os: windows-latest
+            compiler: mingw
 
     steps:
     - uses: actions/checkout@v6
-      with:
-        submodules: recursive
+
+    - name: Setup MSVC
+      if: matrix.compiler == 'msvc'
+      uses: ilammy/msvc-dev-cmd@v1
 
     - name: Configure CMake
       run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DUSE_BUNDLED_ZSTD=ON
