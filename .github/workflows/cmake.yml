@@ -28,7 +28,6 @@ jobs:
         submodules: recursive
 
     - name: Install Ninja
-      if: matrix.compiler != 'msvc'
       run: |
         if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
           sudo apt-get update && sudo apt-get install -y ninja-build
@@ -37,18 +36,14 @@ jobs:
         elif [ "${{ matrix.os }}" = "windows-latest" ]; then
           choco install ninja
         fi
+      shell: bash
 
     - name: Setup MSVC
       if: matrix.compiler == 'msvc'
       uses: ilammy/msvc-dev-cmd@v1
 
     - name: Configure CMake
-      run: |
-        if [ "${{ matrix.compiler }}" = "msvc" ]; then
-          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DUSE_BUNDLED_ZSTD=ON
-        else
-          cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DUSE_BUNDLED_ZSTD=ON
-        fi
+      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DUSE_BUNDLED_ZSTD=ON
       shell: bash
 
     - name: Build
