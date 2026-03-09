@@ -6,6 +6,7 @@
 #include <cstdarg>
 #include <chrono>
 #include <mutex>
+#include <atomic>
 
 #define LogScoped(message) ynw::LogScopedVar uniqueScopedLog(message)
 #define SuppressLogInScope() ynw::SuppressLogScope uniqueSuppressLog
@@ -14,7 +15,7 @@ namespace ynw
 {
 	struct SuppressLogScope
 	{
-		static inline std::atomic<uint32_t> g__SuppressLog = false;
+		static inline std::atomic<uint32_t> g__SuppressLog = 0;
 		SuppressLogScope()
 		{
 			++g__SuppressLog;
@@ -109,7 +110,11 @@ namespace ynw
 		std::mutex m_Mutex;
 	};
 
+#ifdef _MSC_VER
 	inline __declspec(noreturn) void ThrowError(const char* formatString, ...)
+#else
+	inline __attribute__((noreturn)) void ThrowError(const char* formatString, ...)
+#endif
 	{
 		printf("\r\nFatal error: ");
 		va_list argList;
