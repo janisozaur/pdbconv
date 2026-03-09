@@ -2,6 +2,12 @@
 
 #ifdef _WIN32
 #include <Windows.h>
+#else
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <cstring>
 #endif
 
 #include <string>
@@ -9,10 +15,10 @@
 namespace ynw
 {
 #ifdef _WIN32
-	class SimpleWinFile
+	class SimpleFile
 	{
 	public:
-		SimpleWinFile(const char* path)
+		SimpleFile(const char* path)
 			: m_Path(path)
 		{
 		}
@@ -74,7 +80,7 @@ namespace ynw
 			if (m_ViewOfFile == nullptr)
 			{
 				CloseHandle(m_FileMapping);
-				m_FileMapping = INVALID_HANDLE_VALUE;
+				m_FileMapping = NULL;
 				return false;
 			}
 
@@ -92,16 +98,16 @@ namespace ynw
 
 		void Unmap()
 		{
-			if (m_ViewOfFile != INVALID_HANDLE_VALUE)
+			if (m_ViewOfFile != NULL)
 			{
 				UnmapViewOfFile(m_ViewOfFile);
-				m_ViewOfFile = INVALID_HANDLE_VALUE;
+				m_ViewOfFile = NULL;
 			}
 
-			if (m_FileMapping != INVALID_HANDLE_VALUE)
+			if (m_FileMapping != NULL)
 			{
 				CloseHandle(m_FileMapping);
-				m_FileMapping = INVALID_HANDLE_VALUE;
+				m_FileMapping = NULL;
 			}
 
 		}
@@ -109,19 +115,140 @@ namespace ynw
 		void* GetData() const { return m_ViewOfFile; }
 		uint64_t GetSize() const { return m_Size; }
 
-		~SimpleWinFile()
+		~SimpleFile()
 		{
 			Unmap();
-			CloseHandle(m_Handle);
+			if (m_Handle != INVALID_HANDLE_VALUE)
+			{
+				CloseHandle(m_Handle);
+			}
 		}
 
 	private:
 		std::string m_Path;
 		bool m_IsWritable = false;
 		HANDLE m_Handle = INVALID_HANDLE_VALUE;
-		HANDLE m_FileMapping = INVALID_HANDLE_VALUE;
-		HANDLE m_ViewOfFile = INVALID_HANDLE_VALUE;
+		HANDLE m_FileMapping = NULL;
+		LPVOID m_ViewOfFile = NULL;
 		uint64_t m_Size = 0;
 	};
+
+	using SimpleWinFile = SimpleFile;
+#else
+	class SimpleFile
+	{
+	public:
+		SimpleFile(const char* path)
+			: m_Path(path)
+		{
+		}
+
+		bool Resize(uint64_t newSize)
+		{
+			Unmap();
+			if (ftruncate(m_Fd, newSize) == 0)
+			{
+				m_Size = newSize;
+				return Map();
+			}
+			return false;
+		}
+
+		bool Open(bool forWrite, bool overwriteExisting = true)
+		{
+			int flags = forWrite ? O_RDWR : O_RDONLY;
+			if (forWrite)
+			{
+				flags |= O_CREAT;
+				if (overwriteExisting)
+				{
+					flags |= O_TRUNC;
+				}
+				else
+				{
+					flags |= O_EXCL;
+				}
+			}
+
+			m_Fd = open(m_Path.c_str(), flags, 0644);
+			m_IsWritable = forWrite;
+
+			if (m_Fd != -1)
+			{
+				if (m_IsWritable)
+				{
+					return true;
+				}
+				else
+				{
+					return Map();
+				}
+			}
+			return false;
+		}
+
+		bool Map()
+		{
+			Unmap();
+
+			if (m_Size == 0)
+			{
+				struct stat st;
+				if (fstat(m_Fd, &st) == 0)
+				{
+					m_Size = st.st_size;
+				}
+				else
+				{
+					return false;
+				}
+			}
+
+			if (m_Size == 0)
+			{
+				return true;
+			}
+
+			m_ViewOfFile = mmap(nullptr, m_Size, m_IsWritable ? (PROT_READ | PROT_WRITE) : PROT_READ, MAP_SHARED, m_Fd, 0);
+
+			if (m_ViewOfFile == MAP_FAILED)
+			{
+				m_ViewOfFile = nullptr;
+				return false;
+			}
+
+			return true;
+		}
+
+		void Unmap()
+		{
+			if (m_ViewOfFile != nullptr)
+			{
+				munmap(m_ViewOfFile, m_Size);
+				m_ViewOfFile = nullptr;
+			}
+		}
+
+		void* GetData() const { return m_ViewOfFile; }
+		uint64_t GetSize() const { return m_Size; }
+
+		~SimpleFile()
+		{
+			Unmap();
+			if (m_Fd != -1)
+			{
+				close(m_Fd);
+			}
+		}
+
+	private:
+		std::string m_Path;
+		bool m_IsWritable = false;
+		int m_Fd = -1;
+		void* m_ViewOfFile = nullptr;
+		uint64_t m_Size = 0;
+	};
+
+	using SimpleWinFile = SimpleFile;
 #endif
 }
