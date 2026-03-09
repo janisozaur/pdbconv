@@ -19,8 +19,17 @@ jobs:
       with:
         submodules: recursive
 
+    - name: Install Ninja
+      if: matrix.os != 'windows-latest'
+      run: |
+        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+          sudo apt-get update && sudo apt-get install -y ninja-build
+        elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+          brew install ninja
+        fi
+
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DUSE_BUNDLED_ZSTD=ON
+      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DUSE_BUNDLED_ZSTD=ON
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config Release
