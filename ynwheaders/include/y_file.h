@@ -1,15 +1,16 @@
 #pragma once
 
 #ifdef _WIN32
-#include <Windows.h>
+#include <windows.h>
 #else
+#include <cstring>
+#include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <fcntl.h>
 #include <unistd.h>
-#include <cstring>
 #endif
 
+#include <cstdint>
 #include <string>
 
 namespace ynw
@@ -80,7 +81,7 @@ namespace ynw
 			if (m_ViewOfFile == nullptr)
 			{
 				CloseHandle(m_FileMapping);
-				m_FileMapping = NULL;
+				m_FileMapping = nullptr;
 				return false;
 			}
 
@@ -98,16 +99,16 @@ namespace ynw
 
 		void Unmap()
 		{
-			if (m_ViewOfFile != NULL)
+			if (m_ViewOfFile != nullptr)
 			{
 				UnmapViewOfFile(m_ViewOfFile);
-				m_ViewOfFile = NULL;
+				m_ViewOfFile = nullptr;
 			}
 
-			if (m_FileMapping != NULL)
+			if (m_FileMapping != nullptr)
 			{
 				CloseHandle(m_FileMapping);
-				m_FileMapping = NULL;
+				m_FileMapping = nullptr;
 			}
 
 		}
@@ -132,8 +133,6 @@ namespace ynw
 		LPVOID m_ViewOfFile = NULL;
 		uint64_t m_Size = 0;
 	};
-
-	using SimpleWinFile = SimpleFile;
 #else
 	class SimpleFile
 	{
@@ -248,7 +247,5 @@ namespace ynw
 		void* m_ViewOfFile = nullptr;
 		uint64_t m_Size = 0;
 	};
-
-	using SimpleWinFile = SimpleFile;
 #endif
 }

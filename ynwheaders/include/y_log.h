@@ -1,12 +1,12 @@
 #pragma once
 
-#include <cstdint>
 #include <algorithm>
-#include <string>
-#include <cstdarg>
-#include <chrono>
-#include <mutex>
 #include <atomic>
+#include <chrono>
+#include <cstdarg>
+#include <cstdint>
+#include <mutex>
+#include <string>
 
 #define LogScoped(message) ynw::LogScopedVar uniqueScopedLog(message)
 #define SuppressLogInScope() ynw::SuppressLogScope uniqueSuppressLog
@@ -73,9 +73,9 @@ namespace ynw
 	{
 		LogProgressTracker(const std::string& message, uint32_t fullProgressValue)
 			: LogScopedVar(message, false)
+			, m_FullProgressValue(fullProgressValue)
 			, m_CurrentProgressValue(0)
 			, m_PercentageValue(0)
-			, m_FullProgressValue(fullProgressValue)
 		{
 		}
 
@@ -110,11 +110,7 @@ namespace ynw
 		std::mutex m_Mutex;
 	};
 
-#ifdef _MSC_VER
-	inline __declspec(noreturn) void ThrowError(const char* formatString, ...)
-#else
-	inline __attribute__((noreturn)) void ThrowError(const char* formatString, ...)
-#endif
+	[[noreturn]] inline void ThrowError(const char* formatString, ...)
 	{
 		printf("\r\nFatal error: ");
 		va_list argList;
