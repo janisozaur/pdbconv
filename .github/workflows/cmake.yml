@@ -12,10 +12,10 @@ jobs:
         include:
           - os: ubuntu-latest
             compiler: gcc
-            arch: x64
+            arch: amd64 # not actually meaningful, just for naming. The image itself is amd64.
           - os: macos-latest
             compiler: clang
-            arch: x64
+            arch: arm64 # not actually meaningful, just for naming. The image itself is arm64.
           - os: windows-latest
             compiler: msvc
             arch: x64
