@@ -39,6 +39,8 @@ namespace ynw
 			SetShortLetter(shortLetter);
 		}
 
+		virtual ~CommandLineOption() = default;
+
 		using CustomValidationCallback = bool(*)(const CommandLineOption*);
 
 		bool IsPresent() const { return m_IsPresent; }
