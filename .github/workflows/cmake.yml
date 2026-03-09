@@ -7,6 +7,7 @@ jobs:
     name: Build on ${{ matrix.os }} (${{ matrix.compiler }} - ${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
@@ -33,16 +34,9 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Install Ninja
-      run: |
-        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-          sudo apt-get update && sudo apt-get install -y ninja-build
-        elif [ "${{ matrix.os }}" = "macos-latest" ]; then
-          brew install ninja
-        elif [ "${{ matrix.os }}" = "windows-latest" ]; then
-          choco install ninja
-        fi
-      shell: bash
+    - name: Install Ninja (Linux)
+      if: runner.os == 'Linux'
+      run: sudo apt-get update && sudo apt-get install -y ninja-build
 
     - name: Setup MSVC
       if: matrix.compiler == 'msvc'
@@ -51,8 +45,8 @@ jobs:
         arch: ${{ matrix.arch }}
 
     - name: Configure CMake
-      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DUSE_BUNDLED_ZSTD=ON
+      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DUSE_BUNDLED_ZSTD=ON
       shell: bash
 
     - name: Build
-      run: cmake --build ${{github.workspace}}/build --config Release
+      run: cmake --build build --config Release
