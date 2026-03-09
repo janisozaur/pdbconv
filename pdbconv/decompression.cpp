@@ -423,7 +423,7 @@ namespace Decompression
 
 	bool RunDecompression(const ProgramCommandLineArgs& args)
 	{
-		SimpleWinFile msfzFile(args.m_InputFilePath.c_str());
+		SimpleFile msfzFile(args.m_InputFilePath.c_str());
 		{
 			LogScoped("Opening input file");
 			if (!msfzFile.Open(false))
@@ -493,7 +493,7 @@ namespace Decompression
 
 			// open output file for writing
 			const size_t totalSizeOfOutputFile = numBlocksTotal * blockSize;
-			SimpleWinFile outputFile(args.m_OutputFilePath.c_str());
+			SimpleFile outputFile(args.m_OutputFilePath.c_str());
 			{
 				if (!outputFile.Open(true))
 				{
