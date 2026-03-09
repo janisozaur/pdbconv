@@ -362,17 +362,17 @@ namespace ynw
 	public:
 		IntegerValueCommandLineOption(const char shortLetter, const char* name, const char* description)
 			: CommandLineOption(shortLetter, name, description)
+			, m_Value(0)
 			, m_MinValue(0)
 			, m_MaxValue(SIZE_MAX)
-			, m_Value(0)
 		{
 			m_RequiresValue = true;
 		}
 		IntegerValueCommandLineOption(const char* name, const char* description)
 			: CommandLineOption(name, description)
+			, m_Value(0)
 			, m_MinValue(0)
 			, m_MaxValue(SIZE_MAX)
-			, m_Value(0)
 		{
 			m_RequiresValue = true;
 		}

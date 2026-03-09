@@ -73,9 +73,9 @@ namespace ynw
 	{
 		LogProgressTracker(const std::string& message, uint32_t fullProgressValue)
 			: LogScopedVar(message, false)
+			, m_FullProgressValue(fullProgressValue)
 			, m_CurrentProgressValue(0)
 			, m_PercentageValue(0)
-			, m_FullProgressValue(fullProgressValue)
 		{
 		}
 
