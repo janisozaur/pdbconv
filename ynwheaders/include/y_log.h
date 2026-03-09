@@ -15,7 +15,7 @@ namespace ynw
 {
 	struct SuppressLogScope
 	{
-		static inline std::atomic<uint32_t> g__SuppressLog = false;
+		static inline std::atomic<uint32_t> g__SuppressLog = 0;
 		SuppressLogScope()
 		{
 			++g__SuppressLog;
@@ -110,7 +110,7 @@ namespace ynw
 		std::mutex m_Mutex;
 	};
 
-	inline __declspec(noreturn) void ThrowError(const char* formatString, ...)
+	[[noreturn]] inline void ThrowError(const char* formatString, ...)
 	{
 		printf("\r\nFatal error: ");
 		va_list argList;
