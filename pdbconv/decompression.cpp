@@ -25,6 +25,33 @@ namespace Decompression
 	constexpr uint32_t k_MaxNumStreams = 0x10000;
 	constexpr uint32_t k_MaxNumBlocks = 1u << 20;
 
+	void WriteSingleStreamDataToPDB(ImmutableStream& msfzFileStream,
+		const std::span<const MsfzChunk>& chunkDescriptors,
+		const MsfzStream& streamDesc,
+		MutableStreamFixed& outputStream);
+
+	void LogInputPdbGuid(ImmutableStream& msfzFileStream, const std::span<const MsfzChunk> chunkDescriptors, const std::span<const MsfzStream> streamDescriptors)
+	{
+		if (streamDescriptors.size() <= g_PdbInfoStreamIndex)
+		{
+			LogInfo("Input PDB GUID: unavailable (missing info stream).");
+			return;
+		}
+
+		const MsfzStream& infoStream = streamDescriptors[g_PdbInfoStreamIndex];
+		MutableStreamDynamic infoStreamData;
+		infoStreamData.Reserve(infoStream.CalculateSize());
+		WriteSingleStreamDataToPDB(msfzFileStream, chunkDescriptors, infoStream, infoStreamData);
+		const std::optional<std::string> pdbGuid = TryReadPdbInfoStreamGuid({ infoStreamData.GetData(), infoStreamData.GetSize() });
+		if (!pdbGuid.has_value())
+		{
+			LogInfo("Input PDB GUID: unavailable (info stream too small).");
+			return;
+		}
+
+		LogInfo("Input PDB GUID: %s", pdbGuid->c_str());
+	}
+
 	// This stream class handles "holes" in a contiguous block of data we're supposed to write to
 	// i.e. because we have blocks we can't use (FPM blocks), we need to make sure that no data is written there
 	class MutableStreamFixedWithHoles : public MutableStreamFixed
@@ -459,6 +486,7 @@ namespace Decompression
 				LogScoped("Fetching chunk metadata");
 				GetChunkDescriptorsData(fileStream, header, chunkDescriptors);
 			}
+			LogInputPdbGuid(fileStream, chunkDescriptors, streamDescriptors);
 
 			const uint32_t blockSize = args.m_BlockSize.value();
 			std::vector<std::vector<uint32_t>> blockIndicesForStreams;
