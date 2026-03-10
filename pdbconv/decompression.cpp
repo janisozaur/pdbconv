@@ -42,7 +42,7 @@ namespace Decompression
 		MutableStreamDynamic infoStreamData;
 		infoStreamData.Reserve(infoStream.CalculateSize());
 		WriteSingleStreamDataToPDB(msfzFileStream, chunkDescriptors, infoStream, infoStreamData);
-		const std::optional<std::string> pdbGuid = TryReadPdbInfoStreamGuid({ infoStreamData.GetData(), infoStreamData.GetSize() });
+		const std::optional<std::string> pdbGuid = TryReadPdbInfoStreamGuid(std::span<const uint8_t>(infoStreamData.GetData(), StrictCastTo<size_t>(infoStreamData.GetSize())));
 		if (!pdbGuid.has_value())
 		{
 			LogInfo("Input PDB GUID: unavailable (info stream too small).");
