@@ -71,6 +71,35 @@ inline std::optional<std::string> TryReadPdbInfoStreamGuid(const std::span<const
 	return FormatPdbGuid(infoHeader.m_Guid);
 }
 
+inline std::optional<std::string> TryReadPdbInfoStreamGuidAgeForSymbolServer(const std::span<const uint8_t> infoStreamData)
+{
+	if (infoStreamData.size() < sizeof(PDBInfoStreamHeader))
+	{
+		return std::nullopt;
+	}
+
+	PDBInfoStreamHeader infoHeader = {};
+	std::memcpy(&infoHeader, infoStreamData.data(), sizeof(infoHeader));
+
+	std::array<char, 41> guidAgeString = {};
+	std::snprintf(guidAgeString.data(),
+		guidAgeString.size(),
+		"%08X%04X%04X%02X%02X%02X%02X%02X%02X%02X%02X%X",
+		infoHeader.m_Guid.m_Data1,
+		infoHeader.m_Guid.m_Data2,
+		infoHeader.m_Guid.m_Data3,
+		infoHeader.m_Guid.m_Data4[0],
+		infoHeader.m_Guid.m_Data4[1],
+		infoHeader.m_Guid.m_Data4[2],
+		infoHeader.m_Guid.m_Data4[3],
+		infoHeader.m_Guid.m_Data4[4],
+		infoHeader.m_Guid.m_Data4[5],
+		infoHeader.m_Guid.m_Data4[6],
+		infoHeader.m_Guid.m_Data4[7],
+		infoHeader.m_Age);
+	return guidAgeString.data();
+}
+
 enum UsageMode : uint8_t
 {
 	Compress = 0,
@@ -90,6 +119,7 @@ struct ProgramCommandLineArgs
 	std::string m_InputFilePath;
 	std::string m_OutputFilePath;
 	UsageMode m_UsageMode;
+	bool m_UseSymbolServerImplicitOutputName = false;
 
 	// compression args
 	std::optional<CompressionStrategy> m_CompressionStrategy;

@@ -14,6 +14,7 @@
 #include <vector>
 #include <algorithm>
 #include <numeric>
+#include <filesystem>
 
 using namespace ynw;
 
@@ -26,6 +27,8 @@ namespace Compression
 	};
 
 	void CoalesceDataFromStream(ImmutableStream& pdbFileStream, const PDBStreamInfo& streamInfo, const uint32_t blockSize, ReadOnlyVector<uint8_t>& outStreamData);
+	std::optional<std::string> TryReadPdbGuidAgeForSymbolServer(ImmutableStream& pdbFileStream, const std::span<const PDBStreamInfo>& streamInfos, const uint32_t blockSize);
+	std::string MakeSymbolServerOutputPath(const std::string& outputRootPath, const std::string& inputFilePath, const std::string& guidAge);
 
 	void LogInputPdbGuid(ImmutableStream& pdbFileStream, const std::span<const PDBStreamInfo>& streamInfos, const uint32_t blockSize)
 	{
@@ -46,6 +49,30 @@ namespace Compression
 		}
 
 		LogInfo("Input PDB GUID: %s", pdbGuid->c_str());
+	}
+
+	std::optional<std::string> TryReadPdbGuidAgeForSymbolServer(ImmutableStream& pdbFileStream, const std::span<const PDBStreamInfo>& streamInfos, const uint32_t blockSize)
+	{
+		if (streamInfos.size() <= g_PdbInfoStreamIndex)
+		{
+			return std::nullopt;
+		}
+
+		const PDBStreamInfo& infoStream = streamInfos[g_PdbInfoStreamIndex];
+		ReadOnlyVector<uint8_t> infoStreamData;
+		CoalesceDataFromStream(pdbFileStream, infoStream, blockSize, infoStreamData);
+		return TryReadPdbInfoStreamGuidAgeForSymbolServer({ infoStreamData.GetData(), infoStreamData.GetSize() });
+	}
+
+	std::string MakeSymbolServerOutputPath(const std::string& outputRootPath, const std::string& inputFilePath, const std::string& guidAge)
+	{
+		const std::filesystem::path inputFileName = std::filesystem::path(inputFilePath).filename();
+		if (inputFileName.empty())
+		{
+			ThrowError("Unable to derive input file name for symbol server output path.");
+		}
+
+		return (std::filesystem::path(outputRootPath) / inputFileName / guidAge / inputFileName).string();
 	}
 
 	uint32_t GetFragmentSizeForStream(const uint32_t streamSize, const ProgramCommandLineArgs& args)
@@ -360,6 +387,7 @@ namespace Compression
 
 	void RunCompression(const ProgramCommandLineArgs& args)
 	{
+		std::string outputFilePath = args.m_OutputFilePath;
 		SimpleFile pdbFile(args.m_InputFilePath.c_str());
 		{
 			LogScoped("Opening input file");
@@ -387,13 +415,35 @@ namespace Compression
 				ParseStreamDirectory(fileStream, pdbSuperblock, streamInfos);
 			}
 			LogInputPdbGuid(fileStream, streamInfos, pdbSuperblock->m_BlockSize);
+			if (args.m_UseSymbolServerImplicitOutputName)
+			{
+				const std::optional<std::string> pdbGuidAge = TryReadPdbGuidAgeForSymbolServer(fileStream, streamInfos, pdbSuperblock->m_BlockSize);
+				if (!pdbGuidAge.has_value())
+				{
+					ThrowError("Unable to derive symbol server output path because input PDB GUID/Age could not be read.");
+				}
+
+				outputFilePath = MakeSymbolServerOutputPath(args.m_OutputFilePath, args.m_InputFilePath, pdbGuidAge.value());
+				LogInfo("Using symbol server output path: %s", outputFilePath.c_str());
+			}
+
+			const std::filesystem::path outputParentPath = std::filesystem::path(outputFilePath).parent_path();
+			if (!outputParentPath.empty())
+			{
+				std::error_code createDirectoriesError;
+				std::filesystem::create_directories(outputParentPath, createDirectoriesError);
+				if (createDirectoriesError)
+				{
+					ThrowError("Unable to create output directory: %s", outputParentPath.string().c_str());
+				}
+			}
 
 			uint32_t numBytesForDirectoryData = 0;
 			uint32_t numBytesForChunkDescriptors = 0;
 			uint32_t numBytesForChunkDataMax = 0;		// note: this is the maximum amount of bytes, not the actual amount of byte that chunk data will take up
 			CalculateOutputRegionSizes(streamInfos, args, numBytesForDirectoryData, numBytesForChunkDescriptors, numBytesForChunkDataMax);
 
-			SimpleFile outputFile(args.m_OutputFilePath.c_str());
+			SimpleFile outputFile(outputFilePath.c_str());
 			{
 				LogScoped("Opening output file");
 				if (!outputFile.Open(true))

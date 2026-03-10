@@ -21,6 +21,7 @@ Arguments:
 (-s) --strategy={value} (NoCompression, SingleFragment, MultiFragment) | Compression strategy to use when using --compress.
 (-t) --test | Run test batch conversion on directory.
 --thread_num={value}(default 75% of processor count) | Number of threads to use for compression or decompression workflows.
+(-y) --symbol_server_output | Use implicit symbol-server output path: <output>/<input-file-name>/<GUIDAGE>/<input-file-name> when using --compress.
 ```
 
 #### compression
@@ -30,6 +31,7 @@ Of course, the most interesting feature of the program is the ability to create 
 - **-\-level**, the compression level to be used for compression. This value has the same meaning as the `compressionLevel` parameter in `zstd_compress` function that's used to compress data (ref. [zstd manual](http://facebook.github.io/zstd/zstd_manual.html)).
 - (optional) **-\-fixed_fragment_size**, if we want to fix the size of each fragment for each stream. This argument should only be used when strategy is set to **MultiFragment**, as it doesn't make sense otherwise.
 - (optional) **-\-max_frps**, if we want to limit the number of fragments that any single stream can have. This argument should also only be used when strategy is set to **MultiFragment**, as it doesn't make sense otherwise.
+- (optional) **-\-symbol_server_output**, if we want the output path to follow symbol server layout. When this option is used, `--output` is treated as the root directory and the final output path becomes `<output>/<input-file-name>/<GUIDAGE>/<input-file-name>` (for example: `symbols/game.pdb/00112233445566778899AABBCCDDEEFF1/game.pdb`).
 
 The strategies are fairly simple:
 - **NoCompression**  will not compress any data. This basically sets `m_IsCompressed` field in each `MsfzFragment` object to false and doesn't compress the data in chunks, leaving it in its raw form. Not very useful in the real world, but works as a reference point for benchmarks. Interestingly, even using this method we average a 90% compression ratio, just based on memory waste of MSF.
