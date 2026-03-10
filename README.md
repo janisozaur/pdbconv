@@ -7,6 +7,8 @@
 - run **pdbconv.exe**
 
 ### usage
+Value options accept both `--name=value` and `--name value` forms (same for short options, e.g. `-i=input.pdb` and `-i input.pdb`).
+
 ```
 Usage: pdbconv [args]
 Arguments:

@@ -63,7 +63,11 @@ namespace ynw
 			printf("\r\n");
 		}
 
-		virtual bool ParseValue(const char* /*arg*/) { return true; }
+		virtual bool ParseValue(const char* /*arg*/, const char* /*nextArg*/, bool& outConsumedNextArg)
+		{
+			outConsumedNextArg = false;
+			return true;
+		}
 		bool Validate() const
 		{
 			for (const char excludedOpt : m_ExcludedOptions)
@@ -164,8 +168,9 @@ namespace ynw
 			return true;
 		}
 
-		static CommandLineOption* Parse(const char* arg)
+		static CommandLineOption* Parse(const char* arg, const char* nextArg, bool& outConsumedNextArg)
 		{
+			outConsumedNextArg = false;
 			const size_t argLength = strlen(arg);
 			if (argLength < 2 || arg[0] != '-')
 			{
@@ -211,7 +216,7 @@ namespace ynw
 			CommandLineOption* option = commandLineOptionsIt->second.get();
 			if (option->m_RequiresValue)
 			{
-				if (!option->ParseValue(arg))
+				if (!option->ParseValue(arg, nextArg, outConsumedNextArg))
 				{
 					return nullptr;
 				}
@@ -320,15 +325,26 @@ namespace ynw
 			m_AcceptedValues = acceptedValues;
 		}
 
-		bool ParseValue(const char* arg) override
+		bool ParseValue(const char* arg, const char* nextArg, bool& outConsumedNextArg) override
 		{
 			const char* equalsPos = strchr(arg, '=');
-			if (equalsPos == nullptr)
+			const char* argValue = nullptr;
+			if (equalsPos != nullptr)
+			{
+				argValue = equalsPos + 1;
+				outConsumedNextArg = false;
+			}
+			else if (nextArg != nullptr && nextArg[0] != '-')
+			{
+				argValue = nextArg;
+				outConsumedNextArg = true;
+			}
+			else
 			{
 				ThrowArgsError("Unexpected argument format: %s", arg);
 				return false;
 			}
-			const char* argValue = equalsPos + 1;
+
 			m_Value = std::string(argValue);
 			if (!m_AcceptedValues.empty())
 			{
@@ -392,15 +408,26 @@ namespace ynw
 			m_MaxValue = maxValue;
 		}
 
-		bool ParseValue(const char* arg) override
+		bool ParseValue(const char* arg, const char* nextArg, bool& outConsumedNextArg) override
 		{
 			const char* equalsPos = strchr(arg, '=');
-			if (equalsPos == nullptr)
+			const char* argValue = nullptr;
+			if (equalsPos != nullptr)
+			{
+				argValue = equalsPos + 1;
+				outConsumedNextArg = false;
+			}
+			else if (nextArg != nullptr && nextArg[0] != '-')
+			{
+				argValue = nextArg;
+				outConsumedNextArg = true;
+			}
+			else
 			{
 				ThrowArgsError("Unexpected argument format: %s", arg);
 				return false;
 			}
-			const char* argValue = equalsPos + 1;
+
 			m_Value = std::atoi(argValue);
 			if (m_Value < m_MinValue || m_Value > m_MaxValue)
 			{
@@ -427,9 +454,16 @@ namespace ynw
 
 		for (int argIndex = 1; argIndex < argc; ++argIndex)
 		{
-			if (!CommandLineOption::Parse(argv[argIndex]))
+			const char* currentArg = argv[argIndex];
+			const char* nextArg = (argIndex + 1 < argc) ? argv[argIndex + 1] : nullptr;
+			bool consumedNextArg = false;
+			if (!CommandLineOption::Parse(currentArg, nextArg, consumedNextArg))
 			{
 				return false;
+			}
+			if (consumedNextArg)
+			{
+				++argIndex;
 			}
 		}
 
