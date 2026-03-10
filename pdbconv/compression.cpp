@@ -27,7 +27,7 @@ namespace Compression
 	};
 
 	void CoalesceDataFromStream(ImmutableStream& pdbFileStream, const PDBStreamInfo& streamInfo, const uint32_t blockSize, ReadOnlyVector<uint8_t>& outStreamData);
-	std::optional<std::string> TryReadPdbGuidAgeForSymbolServer(ImmutableStream& pdbFileStream, const std::span<const PDBStreamInfo>& streamInfos, const uint32_t blockSize);
+	std::optional<std::string> TryReadPdbGuidAgeForSymbolServer(ImmutableStream& pdbFileStream, const std::span<const PDBStreamInfo>& streamInfos, const uint32_t blockSize, const bool uppercase);
 	std::string MakeSymbolServerOutputPath(const std::string& outputRootPath, const std::string& inputFilePath, const std::string& guidAge);
 
 	void LogInputPdbGuid(ImmutableStream& pdbFileStream, const std::span<const PDBStreamInfo>& streamInfos, const uint32_t blockSize)
@@ -51,7 +51,7 @@ namespace Compression
 		LogInfo("Input PDB GUID: %s", pdbGuid->c_str());
 	}
 
-	std::optional<std::string> TryReadPdbGuidAgeForSymbolServer(ImmutableStream& pdbFileStream, const std::span<const PDBStreamInfo>& streamInfos, const uint32_t blockSize)
+	std::optional<std::string> TryReadPdbGuidAgeForSymbolServer(ImmutableStream& pdbFileStream, const std::span<const PDBStreamInfo>& streamInfos, const uint32_t blockSize, const bool uppercase)
 	{
 		if (streamInfos.size() <= g_PdbInfoStreamIndex)
 		{
@@ -61,7 +61,7 @@ namespace Compression
 		const PDBStreamInfo& infoStream = streamInfos[g_PdbInfoStreamIndex];
 		ReadOnlyVector<uint8_t> infoStreamData;
 		CoalesceDataFromStream(pdbFileStream, infoStream, blockSize, infoStreamData);
-		return TryReadPdbInfoStreamGuidAgeForSymbolServer(std::span<const uint8_t>(infoStreamData.GetData(), StrictCastTo<size_t>(infoStreamData.GetSize())));
+		return TryReadPdbInfoStreamGuidAgeForSymbolServer(std::span<const uint8_t>(infoStreamData.GetData(), StrictCastTo<size_t>(infoStreamData.GetSize())), uppercase);
 	}
 
 	std::string MakeSymbolServerOutputPath(const std::string& outputRootPath, const std::string& inputFilePath, const std::string& guidAge)
@@ -415,9 +415,9 @@ namespace Compression
 				ParseStreamDirectory(fileStream, pdbSuperblock, streamInfos);
 			}
 			LogInputPdbGuid(fileStream, streamInfos, pdbSuperblock->m_BlockSize);
-			if (args.m_UseSymbolServerImplicitOutputName)
+			if (args.m_SymbolServerOutputUppercase.has_value())
 			{
-				const std::optional<std::string> pdbGuidAge = TryReadPdbGuidAgeForSymbolServer(fileStream, streamInfos, pdbSuperblock->m_BlockSize);
+				const std::optional<std::string> pdbGuidAge = TryReadPdbGuidAgeForSymbolServer(fileStream, streamInfos, pdbSuperblock->m_BlockSize, args.m_SymbolServerOutputUppercase.value());
 				if (!pdbGuidAge.has_value())
 				{
 					ThrowError("Unable to derive symbol server output path because input PDB GUID/Age could not be read.");
