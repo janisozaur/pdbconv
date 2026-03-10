@@ -83,6 +83,9 @@ static void RegisterCommandLineOptions()
 			return false;
 		});
 
+	CommandLineOption* symbolServerOutputOption = CommandLineOption::Register<CommandLineOption>('y', "symbol_server_output", " | Use implicit symbol-server output path: <output>/<input-file-name>/<GUIDAGE>/<input-file-name> when using --compress.");
+	symbolServerOutputOption->SetRequiredOptions("c");
+
 	IntegerValueCommandLineOption* blockSizeOption = CommandLineOption::Register<IntegerValueCommandLineOption>('b', "block_size", " (default 4096) | Block size value to use for the output MSF streams when using --decompress.");
 	blockSizeOption->SetRequiredOptions("x");
 	blockSizeOption->SetDefaultValue(0x1000);
@@ -129,6 +132,7 @@ bool ParseCommandLineOptions(const int argc, const char** argv, ProgramCommandLi
 	if (compressionOption->IsPresent())
 	{
 		outArgs.m_UsageMode = UsageMode::Compress;
+		outArgs.m_UseSymbolServerImplicitOutputName = CommandLineOption::GetOption('y')->IsPresent();
 
 		const StringValueCommandLineOption* strategyOption = CommandLineOption::GetOption<StringValueCommandLineOption>('s');
 		assert(strategyOption->IsPresent());
