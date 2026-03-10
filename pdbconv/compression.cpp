@@ -25,6 +25,29 @@ namespace Compression
 		std::vector<uint32_t> m_StreamBlockIndices;
 	};
 
+	void CoalesceDataFromStream(ImmutableStream& pdbFileStream, const PDBStreamInfo& streamInfo, const uint32_t blockSize, ReadOnlyVector<uint8_t>& outStreamData);
+
+	void LogInputPdbGuid(ImmutableStream& pdbFileStream, const std::span<const PDBStreamInfo>& streamInfos, const uint32_t blockSize)
+	{
+		if (streamInfos.size() <= g_PdbInfoStreamIndex)
+		{
+			LogInfo("Input PDB GUID: unavailable (missing info stream).");
+			return;
+		}
+
+		const PDBStreamInfo& infoStream = streamInfos[g_PdbInfoStreamIndex];
+		ReadOnlyVector<uint8_t> infoStreamData;
+		CoalesceDataFromStream(pdbFileStream, infoStream, blockSize, infoStreamData);
+		const std::optional<std::string> pdbGuid = TryReadPdbInfoStreamGuid({ infoStreamData.GetData(), infoStreamData.GetSize() });
+		if (!pdbGuid.has_value())
+		{
+			LogInfo("Input PDB GUID: unavailable (info stream too small).");
+			return;
+		}
+
+		LogInfo("Input PDB GUID: %s", pdbGuid->c_str());
+	}
+
 	uint32_t GetFragmentSizeForStream(const uint32_t streamSize, const ProgramCommandLineArgs& args)
 	{
 		// max frps takes precedence over fixed fragment size
@@ -363,6 +386,7 @@ namespace Compression
 				LogScoped("Parsing stream directory");
 				ParseStreamDirectory(fileStream, pdbSuperblock, streamInfos);
 			}
+			LogInputPdbGuid(fileStream, streamInfos, pdbSuperblock->m_BlockSize);
 
 			uint32_t numBytesForDirectoryData = 0;
 			uint32_t numBytesForChunkDescriptors = 0;

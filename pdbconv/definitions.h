@@ -1,7 +1,11 @@
 #pragma once
 
+#include <array>
+#include <cstdio>
+#include <cstring>
 #include <string>
 #include <optional>
+#include <span>
 #include <vector>
 
 #include "y_misc.h"
@@ -15,6 +19,57 @@ constexpr uint8_t g_MsfzSignatureBytes[] =
 };
 
 constexpr uint8_t g_PdbSignatureBytes[] = "Microsoft C/C++ MSF 7.00\r\n\x1a\x44\x53";
+constexpr uint32_t g_PdbInfoStreamIndex = 1;
+
+struct PDBGuid
+{
+	uint32_t m_Data1;
+	uint16_t m_Data2;
+	uint16_t m_Data3;
+	uint8_t m_Data4[8];
+};
+
+struct PDBInfoStreamHeader
+{
+	uint32_t m_Version;
+	uint32_t m_Signature;
+	uint32_t m_Age;
+	PDBGuid m_Guid;
+};
+
+static_assert(sizeof(PDBInfoStreamHeader) == 28u);
+
+inline std::string FormatPdbGuid(const PDBGuid& guid)
+{
+	std::array<char, 37> guidString = {};
+	std::snprintf(guidString.data(),
+		guidString.size(),
+		"%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+		guid.m_Data1,
+		guid.m_Data2,
+		guid.m_Data3,
+		guid.m_Data4[0],
+		guid.m_Data4[1],
+		guid.m_Data4[2],
+		guid.m_Data4[3],
+		guid.m_Data4[4],
+		guid.m_Data4[5],
+		guid.m_Data4[6],
+		guid.m_Data4[7]);
+	return guidString.data();
+}
+
+inline std::optional<std::string> TryReadPdbInfoStreamGuid(const std::span<const uint8_t> infoStreamData)
+{
+	if (infoStreamData.size() < sizeof(PDBInfoStreamHeader))
+	{
+		return std::nullopt;
+	}
+
+	PDBInfoStreamHeader infoHeader = {};
+	std::memcpy(&infoHeader, infoStreamData.data(), sizeof(infoHeader));
+	return FormatPdbGuid(infoHeader.m_Guid);
+}
 
 enum UsageMode : uint8_t
 {
