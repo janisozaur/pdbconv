@@ -41,7 +41,7 @@ namespace Compression
 		const PDBStreamInfo& infoStream = streamInfos[g_PdbInfoStreamIndex];
 		ReadOnlyVector<uint8_t> infoStreamData;
 		CoalesceDataFromStream(pdbFileStream, infoStream, blockSize, infoStreamData);
-		const std::optional<std::string> pdbGuid = TryReadPdbInfoStreamGuid({ infoStreamData.GetData(), infoStreamData.GetSize() });
+		const std::optional<std::string> pdbGuid = TryReadPdbInfoStreamGuid(std::span<const uint8_t>(infoStreamData.GetData(), StrictCastTo<size_t>(infoStreamData.GetSize())));
 		if (!pdbGuid.has_value())
 		{
 			LogInfo("Input PDB GUID: unavailable (info stream too small).");
@@ -61,7 +61,7 @@ namespace Compression
 		const PDBStreamInfo& infoStream = streamInfos[g_PdbInfoStreamIndex];
 		ReadOnlyVector<uint8_t> infoStreamData;
 		CoalesceDataFromStream(pdbFileStream, infoStream, blockSize, infoStreamData);
-		return TryReadPdbInfoStreamGuidAgeForSymbolServer({ infoStreamData.GetData(), infoStreamData.GetSize() });
+		return TryReadPdbInfoStreamGuidAgeForSymbolServer(std::span<const uint8_t>(infoStreamData.GetData(), StrictCastTo<size_t>(infoStreamData.GetSize())));
 	}
 
 	std::string MakeSymbolServerOutputPath(const std::string& outputRootPath, const std::string& inputFilePath, const std::string& guidAge)
