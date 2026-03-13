@@ -430,11 +430,21 @@ namespace Compression
 			const std::filesystem::path outputParentPath = std::filesystem::path(outputFilePath).parent_path();
 			if (!outputParentPath.empty())
 			{
+				std::error_code outputPathStatusError;
+				if (std::filesystem::exists(outputParentPath, outputPathStatusError) && !std::filesystem::is_directory(outputParentPath, outputPathStatusError))
+				{
+					ThrowError("Unable to create output directory: %s. A non-directory entry already exists at this path. Please choose a different --output root.", outputParentPath.string().c_str());
+				}
+				if (outputPathStatusError)
+				{
+					ThrowError("Unable to inspect output directory path: %s. Filesystem error: %s", outputParentPath.string().c_str(), outputPathStatusError.message().c_str());
+				}
+
 				std::error_code createDirectoriesError;
 				std::filesystem::create_directories(outputParentPath, createDirectoriesError);
 				if (createDirectoriesError)
 				{
-					ThrowError("Unable to create output directory: %s", outputParentPath.string().c_str());
+					ThrowError("Unable to create output directory: %s. Filesystem error: %s", outputParentPath.string().c_str(), createDirectoriesError.message().c_str());
 				}
 			}
 
