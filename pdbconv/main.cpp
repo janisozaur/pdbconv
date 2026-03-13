@@ -84,11 +84,9 @@ static void RegisterCommandLineOptions()
 		});
 
 	CommandLineOption* symbolServerOutputOption = CommandLineOption::Register<CommandLineOption>('y', "symbol_server_output", " | Use implicit symbol-server output path with lowercase GUID+Age: <output>/<input-file-name>/<guidage>/<input-file-name> when using --compress.");
-	symbolServerOutputOption->SetRequiredOptions("c");
 	symbolServerOutputOption->SetExcludedOptions("Y");
 
 	CommandLineOption* symbolServerOutputUppercaseOption = CommandLineOption::Register<CommandLineOption>('Y', "symbol_server_output_uppercase", " | Use implicit symbol-server output path with uppercase GUID+Age: <output>/<input-file-name>/<GUIDAGE>/<input-file-name> when using --compress.");
-	symbolServerOutputUppercaseOption->SetRequiredOptions("c");
 	symbolServerOutputUppercaseOption->SetExcludedOptions("y");
 
 	IntegerValueCommandLineOption* blockSizeOption = CommandLineOption::Register<IntegerValueCommandLineOption>('b', "block_size", " (default 4096) | Block size value to use for the output MSF streams when using --decompress.");
