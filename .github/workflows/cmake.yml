@@ -56,3 +56,45 @@ jobs:
           build/pdbconv/pdbconv
           build/pdbconv/pdbconv.exe
         if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v8
+      with:
+        path: download
+
+    - name: Prepare release assets
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p release-assets
+
+        # Rename binaries to include the originating artifact name so assets are unique.
+        while IFS= read -r -d '' file; do
+          rel="${file#download/}"
+          artifact_name="${rel%%/*}"
+          base="$(basename "$file")"
+
+          if [[ "$base" == "pdbconv.exe" ]]; then
+            cp "$file" "release-assets/${artifact_name}.exe"
+          else
+            cp "$file" "release-assets/${artifact_name}"
+          fi
+        done < <(find download -type f \( -name 'pdbconv' -o -name 'pdbconv.exe' \) -print0)
+
+        ls -la release-assets
+
+    - name: Create immutable release
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: release-assets/*
+        immutableCreate: true
+        allowUpdates: false
