@@ -90,7 +90,7 @@ namespace ynw
 			m_PercentageValue += addPercentage;
 			if (SuppressLogScope::g__SuppressLog == 0)
 			{
-				printf("\r\r%s... %u/%u (%.0f%%)", m_Message.c_str(), m_CurrentProgressValue, m_FullProgressValue, m_PercentageValue * 100.0f);
+				printf("\r%s... %u/%u (%.0f%%)", m_Message.c_str(), m_CurrentProgressValue, m_FullProgressValue, m_PercentageValue * 100.0f);
 			}
 			m_Mutex.unlock();
 		}
